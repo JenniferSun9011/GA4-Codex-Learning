@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>AI Ecommerce Lab</title>
+
+  <style>
+    body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    .product {
+      margin-top: 30px;
+      padding: 24px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+    }
+
+    button {
+      padding: 12px 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>AI Ecommerce Lab</h1>
+
+  <p>
+    This is a free demo website for learning GA4 and Codex data analysis.
+  </p>
+
+  <div class="product">
+    <h2>Demo Rugged Tablet</h2>
+
+    <p>Price: $199.99</p>
+
+    <button type="button">
+      View Product
+    </button>
+  </div>
+</body>
+</html>
