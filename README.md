@@ -35,6 +35,12 @@ Content path:
 
 `Blog -> Article -> Recommended Product -> Product Detail -> Add to Cart -> Checkout -> Purchase`
 
+Phase 3 traffic paths:
+
+- SEO article path: `Blog -> SEO Article -> Recommended Product -> Product Detail -> Cart -> Purchase`
+- Referral test path: `Blog referral test link with utm_source / utm_medium=referral -> Article or Product -> Purchase`
+- AI traffic test path: `Blog AI test link with utm_source=chatgpt/perplexity/gemini and utm_medium=ai_assistant -> Article or Product -> Purchase`
+
 ## Implemented GA4 Ecommerce Events
 
 - `view_item_list` - triggered on `products.html`.
@@ -47,6 +53,7 @@ Content path:
 - `add_shipping_info` - triggered when the shipping method changes.
 - `add_payment_info` - triggered when the payment method changes.
 - `purchase` - triggered once on first view of `thankyou.html` for a transaction ID.
+- `traffic_test_click` - triggered when a Phase 3 referral or AI traffic test link is clicked.
 
 All ecommerce item payloads use stable fields:
 
@@ -121,6 +128,24 @@ To check events:
 3. Open the site in a browser session where GA4 debug traffic is visible.
 4. Complete the product and checkout flow.
 5. Confirm event order and payload consistency.
+
+## Phase 3 Blog Traffic Validation
+
+Open `blog.html` and use the test links under `Referral and AI traffic links`.
+
+Recommended GA4 checks:
+
+1. Realtime: confirm traffic arrives on `article.html` or `product.html` with UTM query parameters.
+2. Traffic acquisition: compare `source / medium` values such as:
+   - `partner-review / referral`
+   - `field-ops-forum / referral`
+   - `outdoor-review-roundup / referral`
+   - `chatgpt / ai_assistant`
+   - `perplexity / ai_assistant`
+   - `gemini / ai_assistant`
+3. Pages and screens: compare engagement on SEO article landing pages.
+4. Ecommerce purchases: compare whether referral and AI test sessions continue to `add_to_cart`, `begin_checkout`, and `purchase`.
+5. DebugView: confirm `traffic_test_click` appears when a test link is clicked.
 
 ## GitHub Pages Deployment
 

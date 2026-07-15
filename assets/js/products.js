@@ -61,6 +61,9 @@
       title: 'How to Choose a Rugged Tablet',
       summary: 'A practical buyer guide for teams comparing durability, screen size, and field workflow needs.',
       recommendedProductId: 'tablet-x1',
+      seoKeyword: 'how to choose a rugged tablet',
+      searchIntent: 'Commercial investigation',
+      trafficGoal: 'Drive readers from buyer education to Rugged Tablet X1 product detail views.',
       body: [
         'A rugged tablet is usually the best fit when shoppers need a larger screen, product catalog access, or warehouse workflow support.',
         'For GA4 analysis, this article is useful for testing visitors who spend time with educational content before viewing a high-intent product page.',
@@ -72,6 +75,9 @@
       title: 'Mobile vs Desktop Shopping Experience',
       summary: 'Compare how mobile and desktop shoppers move through discovery, cart, and checkout paths.',
       recommendedProductId: 'phone-pro',
+      seoKeyword: 'mobile vs desktop ecommerce shopping',
+      searchIntent: 'Informational analysis',
+      trafficGoal: 'Compare mobile and desktop engagement before product clicks and checkout starts.',
       body: [
         'Mobile shoppers need clear product cards, short paths to cart, and checkout controls that avoid horizontal scrolling.',
         'Desktop shoppers often compare more details before moving forward, so product specs and category context matter.',
@@ -83,6 +89,9 @@
       title: 'GA4 Ecommerce Funnel Basics',
       summary: 'Learn the key ecommerce events that make product and checkout funnel diagnosis possible.',
       recommendedProductId: 'watch-outdoor',
+      seoKeyword: 'GA4 ecommerce funnel basics',
+      searchIntent: 'Educational learning',
+      trafficGoal: 'Validate content-assisted journeys from GA4 learning content to product exploration.',
       body: [
         'A clean GA4 ecommerce funnel starts with view_item_list, select_item, view_item, add_to_cart, begin_checkout, and purchase.',
         'Each event needs stable item IDs, names, categories, prices, quantities, and values so later reporting can be trusted.',
@@ -91,11 +100,96 @@
     }
   ];
 
+  const trafficTests = [
+    {
+      group: 'Referral test links',
+      id: 'referral',
+      description: 'Use these links to simulate traffic from partner content, community discussions, and review placements.',
+      links: [
+        {
+          label: 'Partner review to rugged tablet guide',
+          path: 'article.html',
+          params: {
+            id: 'rugged-tablet-guide',
+            utm_source: 'partner-review',
+            utm_medium: 'referral',
+            utm_campaign: 'phase3_referral_test',
+            utm_content: 'rugged_tablet_review'
+          }
+        },
+        {
+          label: 'Community forum to mobile shopping guide',
+          path: 'article.html',
+          params: {
+            id: 'mobile-desktop-shopping',
+            utm_source: 'field-ops-forum',
+            utm_medium: 'referral',
+            utm_campaign: 'phase3_referral_test',
+            utm_content: 'mobile_shopping_thread'
+          }
+        },
+        {
+          label: 'Review roundup to product page',
+          path: 'product.html',
+          params: {
+            id: 'watch-outdoor',
+            utm_source: 'outdoor-review-roundup',
+            utm_medium: 'referral',
+            utm_campaign: 'phase3_referral_test',
+            utm_content: 'smartwatch_roundup_cta'
+          }
+        }
+      ]
+    },
+    {
+      group: 'AI traffic test links',
+      id: 'ai',
+      description: 'Use these links to simulate visitors arriving from AI assistant recommendations or AI search summaries.',
+      links: [
+        {
+          label: 'ChatGPT-style answer to GA4 funnel guide',
+          path: 'article.html',
+          params: {
+            id: 'ga4-funnel-basics',
+            utm_source: 'chatgpt',
+            utm_medium: 'ai_assistant',
+            utm_campaign: 'phase3_ai_traffic_test',
+            utm_content: 'ga4_funnel_answer'
+          }
+        },
+        {
+          label: 'Perplexity-style citation to rugged tablet guide',
+          path: 'article.html',
+          params: {
+            id: 'rugged-tablet-guide',
+            utm_source: 'perplexity',
+            utm_medium: 'ai_assistant',
+            utm_campaign: 'phase3_ai_traffic_test',
+            utm_content: 'rugged_tablet_citation'
+          }
+        },
+        {
+          label: 'Gemini-style recommendation to phone product',
+          path: 'product.html',
+          params: {
+            id: 'phone-pro',
+            utm_source: 'gemini',
+            utm_medium: 'ai_assistant',
+            utm_campaign: 'phase3_ai_traffic_test',
+            utm_content: 'rugged_phone_recommendation'
+          }
+        }
+      ]
+    }
+  ];
+
   window.AIELabProducts = products;
   window.AIELabArticles = articles;
+  window.AIELabTrafficTests = trafficTests;
   window.AIELabData = {
     products,
     articles,
+    trafficTests,
     findProduct(id) {
       return products.find(function (product) { return product.item_id === id; });
     },

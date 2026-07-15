@@ -141,6 +141,13 @@
           return toGa4Item(item.product, item.quantity, index + 1);
         })
       });
+    },
+    trafficTestClick(testType, label, linkUrl) {
+      sendEvent('traffic_test_click', {
+        test_type: testType,
+        link_label: label,
+        link_url: linkUrl
+      });
     }
   };
 })();

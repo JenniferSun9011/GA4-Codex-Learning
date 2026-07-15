@@ -21,6 +21,12 @@
     return 'article.html?id=' + encodeURIComponent(article.id);
   }
 
+  function buildUrl(path, params) {
+    const query = new URLSearchParams(params || {});
+    const suffix = query.toString();
+    return suffix ? path + '?' + suffix : path;
+  }
+
   function getParam(name) {
     return new URLSearchParams(window.location.search).get(name);
   }
@@ -351,6 +357,11 @@
         '<p class="tag">Guide</p>',
         '<h2><a href="' + articleUrl(article) + '">' + article.title + '</a></h2>',
         '<p>' + article.summary + '</p>',
+        '<dl class="article-meta">',
+        '<div><dt>Target keyword</dt><dd>' + article.seoKeyword + '</dd></div>',
+        '<div><dt>Search intent</dt><dd>' + article.searchIntent + '</dd></div>',
+        '<div><dt>Traffic goal</dt><dd>' + article.trafficGoal + '</dd></div>',
+        '</dl>',
         '<div class="recommendation">',
         '<span>Recommended: ' + product.item_name + '</span>',
         '<a class="text-link" href="' + productUrl(product) + '">Shop Now</a>',
@@ -358,6 +369,42 @@
         '</article>'
       ].join('');
     }).join('');
+  }
+
+  function renderTrafficTests() {
+    const target = qs('[data-traffic-tests]');
+    if (!target) {
+      return;
+    }
+    target.innerHTML = [
+      '<div class="section__heading">',
+      '<p class="eyebrow">Source testing</p>',
+      '<h2>Referral and AI traffic links</h2>',
+      '<p>Click these links to create GA4 sessions with source and medium parameters. Continue from article or product page to cart and purchase to compare conversion quality by source.</p>',
+      '</div>',
+      '<div class="traffic-test-grid">',
+      window.AIELabTrafficTests.map(function (group) {
+        return [
+          '<article class="traffic-card">',
+          '<p class="tag">' + group.id + '</p>',
+          '<h3>' + group.group + '</h3>',
+          '<p>' + group.description + '</p>',
+          '<div class="traffic-links">',
+          group.links.map(function (link) {
+            const url = buildUrl(link.path, link.params);
+            return [
+              '<a class="traffic-link" href="' + url + '" data-traffic-test="' + group.id + '" data-traffic-label="' + link.label + '">',
+              '<span>' + link.label + '</span>',
+              '<code>' + link.params.utm_source + ' / ' + link.params.utm_medium + '</code>',
+              '</a>'
+            ].join('');
+          }).join(''),
+          '</div>',
+          '</article>'
+        ].join('');
+      }).join(''),
+      '</div>'
+    ].join('');
   }
 
   function renderArticleDetail() {
@@ -406,6 +453,14 @@
         renderCart();
         updateCartCount();
       }
+      const trafficLink = event.target.closest('[data-traffic-test]');
+      if (trafficLink) {
+        window.AIELabAnalytics.trafficTestClick(
+          trafficLink.getAttribute('data-traffic-test'),
+          trafficLink.getAttribute('data-traffic-label'),
+          trafficLink.getAttribute('href')
+        );
+      }
     });
 
     document.addEventListener('change', function (event) {
@@ -453,6 +508,7 @@
     renderCheckout();
     renderThankYou();
     renderBlogList();
+    renderTrafficTests();
     renderArticleDetail();
     bindGlobalEvents();
   }
