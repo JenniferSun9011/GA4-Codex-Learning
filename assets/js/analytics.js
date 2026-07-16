@@ -41,7 +41,9 @@
   }
 
   function sendEvent(eventName, params) {
-    const payload = params || {};
+    const payload = Object.assign({
+      transport_type: 'beacon'
+    }, params || {});
     debugEvent(eventName, payload);
     if (typeof window.gtag === 'function') {
       window.gtag('event', eventName, payload);
@@ -146,7 +148,8 @@
       sendEvent('traffic_test_click', {
         test_type: testType,
         link_label: label,
-        link_url: linkUrl
+        link_url: linkUrl,
+        event_timeout: 2000
       });
     }
   };

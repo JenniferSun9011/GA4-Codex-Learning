@@ -186,3 +186,5 @@ https://<username>.github.io/GA4-Codex-Learning/
 - Create a Service Account outside the repository.
 - Use Codex to analyze traffic, product, page, and funnel performance.
 - Generate automated growth diagnosis reports.
+
+See `docs/ga4-data-api-analysis-plan.md` for the MVP reporting dimensions, metrics, and decision questions.
