@@ -2,6 +2,11 @@
   const CART_KEY = 'aiEcommerceLabCart';
   const ORDER_KEY = 'aiEcommerceLabLastOrder';
   const PURCHASED_KEY_PREFIX = 'aiEcommerceLabPurchased:';
+  const COUPON_KEY = 'aiEcommerceLabCoupon';
+  const COUPONS = {
+    LAB10: 0.10,
+    FIELD15: 0.15
+  };
 
   function parseJson(value, fallback) {
     try {
@@ -106,18 +111,44 @@
   }
 
   function tax(cartItems) {
-    return window.AIELabAnalytics.roundMoney(subtotal(cartItems) * 0.08);
+    return window.AIELabAnalytics.roundMoney((subtotal(cartItems) - discount(cartItems)) * 0.08);
+  }
+
+  function getCoupon() {
+    return parseJson(window.localStorage.getItem(COUPON_KEY), null);
+  }
+
+  function applyCoupon(code) {
+    const normalized = String(code || '').trim().toUpperCase();
+    if (!COUPONS[normalized]) {
+      window.localStorage.removeItem(COUPON_KEY);
+      return { valid: false, code: normalized, rate: 0 };
+    }
+    const coupon = { valid: true, code: normalized, rate: COUPONS[normalized] };
+    window.localStorage.setItem(COUPON_KEY, JSON.stringify(coupon));
+    return coupon;
+  }
+
+  function discount(cartItems) {
+    const coupon = getCoupon();
+    if (!coupon || !coupon.valid) {
+      return 0;
+    }
+    return window.AIELabAnalytics.roundMoney(subtotal(cartItems) * coupon.rate);
   }
 
   function totals(cartItems, method) {
     const itemsSubtotal = subtotal(cartItems);
     const shippingValue = shipping(cartItems, method || 'standard');
     const taxValue = tax(cartItems);
+    const discountValue = discount(cartItems);
     return {
       subtotal: itemsSubtotal,
+      discount: discountValue,
+      coupon: getCoupon(),
       shipping: shippingValue,
       tax: taxValue,
-      total: window.AIELabAnalytics.roundMoney(itemsSubtotal + shippingValue + taxValue)
+      total: window.AIELabAnalytics.roundMoney(itemsSubtotal - discountValue + shippingValue + taxValue)
     };
   }
 
@@ -132,6 +163,8 @@
       payment_method: options.paymentMethod || 'demo-card',
       items: cartItems,
       subtotal: orderTotals.subtotal,
+      discount: orderTotals.discount,
+      coupon: orderTotals.coupon ? orderTotals.coupon.code : null,
       shipping: orderTotals.shipping,
       tax: orderTotals.tax,
       total: orderTotals.total
@@ -160,6 +193,8 @@
     removeItem,
     clearCart,
     totals,
+    getCoupon,
+    applyCoupon,
     createOrder,
     getLastOrder,
     hasSentPurchase,

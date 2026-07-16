@@ -37,6 +37,21 @@ FUNNEL_EVENTS = [
     "purchase",
 ]
 
+DIAGNOSTIC_EVENTS = [
+    "search",
+    "view_search_results",
+    "view_promotion",
+    "select_promotion",
+    "generate_lead",
+    "add_to_wishlist",
+    "apply_coupon",
+    "select_shipping_option",
+    "form_start",
+    "form_error",
+    "checkout_error",
+    "payment_failed",
+]
+
 
 def build_client(key_path):
     if not key_path.exists():
@@ -163,7 +178,7 @@ def make_table(headers, rows, max_rows=20):
     return f"<div class=\"table-wrap\"><table><thead><tr>{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table></div>{more}"
 
 
-def build_insights(summary, funnel_rows, source_rows, page_rows, product_event_rows, content_rows):
+def build_insights(summary, funnel_rows, source_rows, page_rows, product_event_rows, content_rows, diagnostic_rows):
     insights = []
     sessions = get_metric(summary, "sessions")
     users = get_metric(summary, "activeUsers")
@@ -176,6 +191,10 @@ def build_insights(summary, funnel_rows, source_rows, page_rows, product_event_r
     begin_checkout = event_counts.get("begin_checkout", 0)
     purchase = event_counts.get("purchase", 0)
     traffic_click = event_counts.get("traffic_test_click", 0)
+    diagnostic_counts = {row.get("eventName"): number(row.get("eventCount")) for row in diagnostic_rows}
+    leads = diagnostic_counts.get("generate_lead", 0)
+    payment_failed = diagnostic_counts.get("payment_failed", 0)
+    checkout_errors = diagnostic_counts.get("checkout_error", 0)
 
     insights.append(
         {
@@ -239,6 +258,24 @@ def build_insights(summary, funnel_rows, source_rows, page_rows, product_event_r
                 "title": "商品维度已具备基础分析条件",
                 "evidence": f"商品事件记录数={len(product_event_rows)}。",
                 "action": "下一步按 itemName + eventName 计算每个商品的浏览、加购、购买差异。",
+            }
+        )
+    if payment_failed or checkout_errors:
+        insights.append(
+            {
+                "area": "Checkout Diagnosis",
+                "title": "Checkout errors are available for diagnosis",
+                "evidence": f"payment_failed={intish(payment_failed)}, checkout_error={intish(checkout_errors)}.",
+                "action": "Compare failure events by device, source, and payment method before changing the checkout experience.",
+            }
+        )
+    if leads:
+        insights.append(
+            {
+                "area": "User Asset Growth",
+                "title": "Newsletter lead signals are now measurable",
+                "evidence": f"generate_lead={intish(leads)}.",
+                "action": "Compare lead rate and downstream product engagement by content page and acquisition source.",
             }
         )
     return insights
@@ -343,6 +380,11 @@ def main():
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--start-date", default="7daysAgo")
     parser.add_argument("--end-date", default="today")
+    parser.add_argument(
+        "--export-csv",
+        action="store_true",
+        help="Also export the underlying report tables as CSV files.",
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -382,6 +424,15 @@ def main():
             "description": "识别哪些页面带来浏览、事件和用户行为，是页面优化和内容扩展的基础。",
             "dimensions": ["pagePath", "pageTitle"],
             "metrics": ["activeUsers", "sessions", "screenPageViews", "eventCount", "keyEvents"],
+            "limit": 100,
+        },
+        {
+            "key": "conversion_diagnostics",
+            "title": "Conversion Diagnostics",
+            "description": "Search, promotion, lead, coupon, shipping, form, and payment-failure events used to explain funnel movement.",
+            "dimensions": ["eventName"],
+            "metrics": ["activeUsers", "sessions", "eventCount"],
+            "dimension_filter": event_filter(DIAGNOSTIC_EVENTS),
             "limit": 100,
         },
         {
@@ -458,9 +509,10 @@ def main():
             )
             headers, rows = rows_from_response(response)
             results[spec["key"]] = {"spec": spec, "headers": headers, "rows": rows, "dicts": row_dicts(headers, rows)}
-            csv_path = output_dir / f"{timestamp}-{spec['key']}.csv"
-            write_csv(csv_path, headers, rows)
-            csv_files.append(csv_path)
+            if args.export_csv:
+                csv_path = output_dir / f"{timestamp}-{spec['key']}.csv"
+                write_csv(csv_path, headers, rows)
+                csv_files.append(csv_path)
         except api_exceptions.InvalidArgument as error:
             if spec.get("optional"):
                 warnings.append(f"Optional report skipped: {spec['title']} ({error})")
@@ -474,6 +526,7 @@ def main():
     page_rows = results["pages"]["dicts"]
     product_event_rows = results["product_events"]["dicts"]
     content_rows = results["content_pages"]["dicts"]
+    diagnostic_rows = results["conversion_diagnostics"]["dicts"]
 
     kpis = [
         ("Active users", str(intish(summary_row.get("activeUsers", 0)))),
@@ -490,6 +543,7 @@ def main():
         "traffic_sources",
         "event_funnel",
         "pages",
+        "conversion_diagnostics",
         "content_pages",
         "product_events",
         "devices",
@@ -509,7 +563,7 @@ def main():
             }
         )
 
-    insights = build_insights(summary_row, funnel_rows, source_rows, page_rows, product_event_rows, content_rows)
+    insights = build_insights(summary_row, funnel_rows, source_rows, page_rows, product_event_rows, content_rows, diagnostic_rows)
     dashboard_path = output_dir / f"{timestamp}-ga4-operations-dashboard.html"
     render_dashboard(
         dashboard_path,
@@ -532,9 +586,12 @@ def main():
     print("\nAction guidance")
     for insight in insights:
         print(f"- [{insight['area']}] {insight['title']} | {insight['action']}")
-    print("\nCSV files")
-    for csv_path in csv_files:
-        print(f"- {csv_path}")
+    if args.export_csv:
+        print("\nCSV files")
+        for csv_path in csv_files:
+            print(f"- {csv_path}")
+    else:
+        print("\nDetailed CSV exports: disabled (use --export-csv when needed).")
     if warnings:
         print("\nWarnings")
         for warning in warnings:

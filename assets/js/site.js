@@ -45,6 +45,11 @@
       '<a href="about.html">About</a>',
       '<a class="cart-link" href="cart.html">Cart <span data-cart-count>0</span></a>',
       '</nav>',
+      '<form class="site-search" data-site-search role="search">',
+      '<label class="sr-only" for="site-search-input">Search products</label>',
+      '<input id="site-search-input" name="q" type="search" placeholder="Search products">',
+      '<button type="submit" aria-label="Search products">Search</button>',
+      '</form>',
       '</div>'
     ].join('');
     updateCartCount();
@@ -123,11 +128,15 @@
     if (!target) {
       return;
     }
-    target.innerHTML = window.AIELabProducts.map(function (product) {
+    const category = getParam('category');
+    const products = category ? window.AIELabProducts.filter(function (product) {
+      return product.item_category === category;
+    }) : window.AIELabProducts;
+    target.innerHTML = products.map(function (product) {
       return productCard(product, 'products_page', 'Products Page');
     }).join('');
     bindSelectItems(target);
-    window.AIELabAnalytics.viewItemList(window.AIELabProducts, 'products_page', 'Products Page');
+    window.AIELabAnalytics.viewItemList(products, 'products_page', 'Products Page');
   }
 
   function renderProductDetail() {
@@ -167,6 +176,7 @@
       '<div class="button-row">',
       '<button class="button button--primary" type="button" data-add-to-cart="' + product.item_id + '">Add to Cart</button>',
       '<button class="button button--secondary" type="button" data-buy-now="' + product.item_id + '">Buy Now</button>',
+      '<button class="text-button" type="button" data-add-to-wishlist="' + product.item_id + '">Save for later</button>',
       '</div>',
       '</div>',
       '</article>'
@@ -227,9 +237,15 @@
       '<aside class="summary-box">',
       '<h2>Cart total</h2>',
       '<div class="summary-row"><span>Subtotal</span><strong>' + formatMoney(totals.subtotal) + '</strong></div>',
+      (totals.discount ? '<div class="summary-row"><span>Discount' + (totals.coupon ? ' (' + totals.coupon.code + ')' : '') + '</span><strong>-' + formatMoney(totals.discount) + '</strong></div>' : ''),
       '<div class="summary-row"><span>Estimated shipping</span><strong>' + formatMoney(totals.shipping) + '</strong></div>',
       '<div class="summary-row"><span>Estimated tax</span><strong>' + formatMoney(totals.tax) + '</strong></div>',
       '<div class="summary-row summary-row--total"><span>Total</span><strong>' + formatMoney(totals.total) + '</strong></div>',
+      '<form class="coupon-form" data-coupon-form>',
+      '<label for="coupon-code">Promo code</label>',
+      '<div><input id="coupon-code" name="coupon" value="' + (totals.coupon ? totals.coupon.code : '') + '" placeholder="Try LAB10 or FIELD15"><button class="button button--small" type="submit">Apply</button></div>',
+      '<p class="form-message" data-coupon-message>Use LAB10 for 10% or FIELD15 for 15% off.</p>',
+      '</form>',
       '<a class="button button--primary button--full" href="checkout.html">Checkout</a>',
       '</aside>',
       '</div>'
@@ -273,6 +289,18 @@
       '<h2>Payment method</h2>',
       checkoutOption('payment', 'pay-demo-card', 'demo-card', 'Demo card - no real payment', true),
       checkoutOption('payment', 'pay-demo-wallet', 'demo-wallet', 'Demo wallet - no real payment', false),
+      checkoutOption('payment', 'pay-demo-declined', 'demo-declined', 'Declined test payment - simulate a failure', false),
+      '</section>',
+      '<section class="panel">',
+      '<h2>Checkout readiness</h2>',
+      '<label for="purchase-purpose">Select a demo purchase purpose</label>',
+      '<select id="purchase-purpose" name="purchase-purpose" data-checkout-purpose>',
+      '<option value="">Choose an option</option>',
+      '<option value="field_replacement">Field device replacement</option>',
+      '<option value="team_rollout">Team rollout evaluation</option>',
+      '<option value="ga4_training">GA4 training walkthrough</option>',
+      '</select>',
+      '<p class="form-message" data-checkout-error aria-live="polite"></p>',
       '</section>',
       '<p class="privacy-note">This checkout uses simulated options only and does not collect personal information.</p>',
       '</div>',
@@ -296,6 +324,7 @@
         return '<div class="summary-row"><span>' + item.product.item_name + ' x ' + item.quantity + '</span><strong>' + formatMoney(item.product.price * item.quantity) + '</strong></div>';
       }).join(''),
       '<div class="summary-row"><span>Subtotal</span><strong>' + formatMoney(totals.subtotal) + '</strong></div>',
+      (totals.discount ? '<div class="summary-row"><span>Discount' + (totals.coupon ? ' (' + totals.coupon.code + ')' : '') + '</span><strong>-' + formatMoney(totals.discount) + '</strong></div>' : ''),
       '<div class="summary-row"><span>Shipping</span><strong>' + formatMoney(totals.shipping) + '</strong></div>',
       '<div class="summary-row"><span>Tax</span><strong>' + formatMoney(totals.tax) + '</strong></div>',
       '<div class="summary-row summary-row--total"><span>Total</span><strong>' + formatMoney(totals.total) + '</strong></div>',
@@ -407,6 +436,63 @@
     ].join('');
   }
 
+  function renderPromotion() {
+    const target = qs('[data-promotion]');
+    if (!target) {
+      return;
+    }
+    const product = window.AIELabData.findProduct('tablet-x1');
+    const promotion = {
+      id: 'field-kit-launch',
+      name: 'Field Kit Launch Offer',
+      creative: 'homepage_field_kit_banner',
+      product: product
+    };
+    target.innerHTML = [
+      '<div>',
+      '<p class="eyebrow">Training promotion</p>',
+      '<h2>Field Kit Launch: save 10% with LAB10</h2>',
+      '<p>Use this simulated promotion to analyse banner exposure, promotion clicks, coupon use, and purchase behavior.</p>',
+      '</div>',
+      '<a class="button button--primary" href="' + productUrl(product) + '" data-promotion-id="' + promotion.id + '">Shop the offer</a>'
+    ].join('');
+    window.AIELabAnalytics.viewPromotion(promotion);
+  }
+
+  function renderSearchResults() {
+    const target = qs('[data-search-results]');
+    if (!target) {
+      return;
+    }
+    const term = (getParam('q') || '').trim();
+    const normalized = term.toLowerCase();
+    const products = normalized ? window.AIELabProducts.filter(function (product) {
+      return [product.item_name, product.item_category, product.description].join(' ').toLowerCase().indexOf(normalized) !== -1;
+    }) : [];
+    qs('[data-search-term]').textContent = term || 'a product';
+    target.innerHTML = products.length ? products.map(function (product) {
+      return productCard(product, 'site_search', 'Site Search Results');
+    }).join('') : '<div class="empty-state"><h2>No products found</h2><p>Try tablet, phone, or watch.</p><a class="button button--primary" href="products.html">Browse products</a></div>';
+    bindSelectItems(target);
+    if (term) {
+      window.AIELabAnalytics.search(term, products.length);
+      window.AIELabAnalytics.viewSearchResults(term, products);
+    }
+  }
+
+  function renderNewsletter() {
+    const target = qs('[data-newsletter]');
+    if (!target) {
+      return;
+    }
+    target.innerHTML = [
+      '<section class="newsletter-panel">',
+      '<div><p class="eyebrow">User asset test</p><h2>Join the simulated product digest</h2><p>No email is collected. This interaction only creates a training lead event.</p></div>',
+      '<form data-newsletter-form><button class="button button--primary" type="submit">Create demo subscription</button><p class="form-message" data-newsletter-message aria-live="polite"></p></form>',
+      '</section>'
+    ].join('');
+  }
+
   function renderArticleDetail() {
     const target = qs('[data-article-detail]');
     if (!target) {
@@ -461,6 +547,25 @@
           trafficLink.getAttribute('href')
         );
       }
+      const wishlistButton = event.target.closest('[data-add-to-wishlist]');
+      if (wishlistButton) {
+        const product = window.AIELabData.findProduct(wishlistButton.getAttribute('data-add-to-wishlist'));
+        if (product) {
+          window.AIELabAnalytics.addToWishlist(product);
+          wishlistButton.textContent = 'Saved for training';
+          wishlistButton.disabled = true;
+        }
+      }
+      const promotionLink = event.target.closest('[data-promotion-id]');
+      if (promotionLink) {
+        const product = window.AIELabData.findProduct('tablet-x1');
+        window.AIELabAnalytics.selectPromotion({
+          id: promotionLink.getAttribute('data-promotion-id'),
+          name: 'Field Kit Launch Offer',
+          creative: 'homepage_field_kit_banner',
+          product: product
+        });
+      }
     });
 
     document.addEventListener('change', function (event) {
@@ -473,6 +578,7 @@
         const items = window.AIELabCart.getItems();
         const shippingValue = window.AIELabCart.totals(items, event.target.value).shipping;
         updateCheckoutSummary(event.target.value);
+        window.AIELabAnalytics.selectShippingOption(items, event.target.value, shippingValue);
         window.AIELabAnalytics.addShippingInfo(items, event.target.value, shippingValue);
       }
       if (event.target.name === 'payment') {
@@ -481,18 +587,65 @@
     });
 
     document.addEventListener('submit', function (event) {
+      const searchForm = event.target.closest('[data-site-search]');
+      if (searchForm) {
+        event.preventDefault();
+        const query = new FormData(searchForm).get('q');
+        window.location.href = buildUrl('search.html', { q: String(query || '').trim() });
+        return;
+      }
+      const couponForm = event.target.closest('[data-coupon-form]');
+      if (couponForm) {
+        event.preventDefault();
+        const coupon = window.AIELabCart.applyCoupon(new FormData(couponForm).get('coupon'));
+        const items = window.AIELabCart.getItems();
+        const discountValue = coupon.valid ? window.AIELabCart.totals(items).discount : 0;
+        window.AIELabAnalytics.applyCoupon(coupon.code, discountValue, coupon.valid ? 'valid' : 'invalid');
+        renderCart();
+        return;
+      }
+      const newsletterForm = event.target.closest('[data-newsletter-form]');
+      if (newsletterForm) {
+        event.preventDefault();
+        const source = document.body.getAttribute('data-page') || 'site';
+        window.AIELabAnalytics.generateLead('simulated_newsletter', source);
+        const message = qs('[data-newsletter-message]', newsletterForm);
+        message.textContent = 'Demo subscription recorded. No personal data was collected.';
+        newsletterForm.querySelector('button').disabled = true;
+        return;
+      }
       const form = event.target.closest('[data-checkout-form]');
       if (!form) {
         return;
       }
       event.preventDefault();
+      const purpose = qs('[data-checkout-purpose]', form);
       const shipping = qs('input[name="shipping"]:checked', form);
       const payment = qs('input[name="payment"]:checked', form);
+      const error = qs('[data-checkout-error]', form);
+      if (!purpose || !purpose.value) {
+        error.textContent = 'Choose a demo purchase purpose before placing the order.';
+        window.AIELabAnalytics.formError('demo_checkout', 'missing_purchase_purpose');
+        return;
+      }
+      if (payment && payment.value === 'demo-declined') {
+        error.textContent = 'This simulated payment was declined. Choose another payment method to continue.';
+        window.AIELabAnalytics.checkoutError('payment_declined', payment.value);
+        window.AIELabAnalytics.paymentFailed(payment.value);
+        return;
+      }
       window.AIELabCart.createOrder({
         shippingMethod: shipping ? shipping.value : 'standard',
         paymentMethod: payment ? payment.value : 'demo-card'
       });
       window.location.href = 'thankyou.html';
+    });
+
+    document.addEventListener('focusin', function (event) {
+      if (event.target.closest('[data-checkout-form]') && !window.__AIELabCheckoutFormStarted) {
+        window.__AIELabCheckoutFormStarted = true;
+        window.AIELabAnalytics.formStart('demo_checkout');
+      }
     });
 
     window.addEventListener('cart:updated', updateCartCount);
@@ -510,6 +663,9 @@
     renderBlogList();
     renderTrafficTests();
     renderArticleDetail();
+    renderPromotion();
+    renderSearchResults();
+    renderNewsletter();
     bindGlobalEvents();
   }
 

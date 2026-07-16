@@ -96,6 +96,11 @@ def main():
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--start-date", default="7daysAgo")
     parser.add_argument("--end-date", default="today")
+    parser.add_argument(
+        "--export-csv",
+        action="store_true",
+        help="Also export report rows as CSV files.",
+    )
     args = parser.parse_args()
 
     key_path = Path(args.key_path)
@@ -127,7 +132,7 @@ def main():
 
     print(f"GA4 property: {args.property_id}")
     print(f"Date range: {args.start_date} to {args.end_date}")
-    print(f"CSV output directory: {output_dir}")
+    print("Detailed CSV exports: enabled" if args.export_csv else "Detailed CSV exports: disabled")
 
     for report in reports:
         response = run_report(
@@ -141,9 +146,10 @@ def main():
         )
         headers, rows = rows_from_response(response)
         print_table(report["title"], headers, rows)
-        csv_path = output_dir / f"{timestamp}-{report['title']}.csv"
-        write_csv(csv_path, headers, rows)
-        print(f"CSV: {csv_path}")
+        if args.export_csv:
+            csv_path = output_dir / f"{timestamp}-{report['title']}.csv"
+            write_csv(csv_path, headers, rows)
+            print(f"CSV: {csv_path}")
 
 
 if __name__ == "__main__":

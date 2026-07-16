@@ -102,6 +102,51 @@
 
   const trafficTests = [
     {
+      group: 'Paid traffic test links',
+      id: 'paid',
+      description: 'Use these links to simulate paid search and paid social campaigns with distinct landing pages and creative labels.',
+      links: [
+        {
+          label: 'Paid search to rugged tablet product',
+          path: 'product.html',
+          params: {
+            id: 'tablet-x1',
+            utm_source: 'google',
+            utm_medium: 'cpc',
+            utm_campaign: 'training_paid_search_tablet',
+            utm_content: 'tablet_high_intent_text_ad'
+          }
+        },
+        {
+          label: 'Paid social to field device promotion',
+          path: 'index.html',
+          params: {
+            utm_source: 'linkedin',
+            utm_medium: 'paid_social',
+            utm_campaign: 'training_paid_social_field_kit',
+            utm_content: 'field_team_carousel'
+          }
+        }
+      ]
+    },
+    {
+      group: 'Email traffic test links',
+      id: 'email',
+      description: 'Use these links to simulate owned email traffic returning to a product or promotion path.',
+      links: [
+        {
+          label: 'Newsletter to smartwatch promotion',
+          path: 'index.html',
+          params: {
+            utm_source: 'newsletter',
+            utm_medium: 'email',
+            utm_campaign: 'training_weekly_product_digest',
+            utm_content: 'smartwatch_feature'
+          }
+        }
+      ]
+    },
+    {
       group: 'Referral test links',
       id: 'referral',
       description: 'Use these links to simulate traffic from partner content, community discussions, and review placements.',

@@ -42,7 +42,9 @@
 
   function sendEvent(eventName, params) {
     const payload = Object.assign({
-      transport_type: 'beacon'
+      transport_type: 'beacon',
+      environment: 'training',
+      training_scenario: getTrainingScenario()
     }, params || {});
     debugEvent(eventName, payload);
     if (typeof window.gtag === 'function') {
@@ -51,6 +53,14 @@
         console.log('[GA4] ' + eventName + ' sent');
       }
     }
+  }
+
+  function getTrainingScenario() {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get('utm_campaign')) {
+      return query.get('utm_campaign');
+    }
+    return document.body.getAttribute('data-page') || 'site_navigation';
   }
 
   function listParams(products, listId, listName) {
@@ -139,6 +149,8 @@
         value: roundMoney(order.total),
         tax: roundMoney(order.tax),
         shipping: roundMoney(order.shipping),
+        coupon: order.coupon || undefined,
+        discount: roundMoney(order.discount),
         items: order.items.map(function (item, index) {
           return toGa4Item(item.product, item.quantity, index + 1);
         })
@@ -150,6 +162,81 @@
         link_label: label,
         link_url: linkUrl,
         event_timeout: 2000
+      });
+    },
+    search(searchTerm, resultsCount) {
+      sendEvent('search', {
+        search_term: searchTerm,
+        results_count: Number(resultsCount) || 0
+      });
+    },
+    viewSearchResults(searchTerm, products) {
+      sendEvent('view_search_results', Object.assign({
+        search_term: searchTerm,
+        results_count: products.length
+      }, listParams(products, 'site_search', 'Site Search Results')));
+    },
+    viewPromotion(promotion) {
+      sendEvent('view_promotion', {
+        promotion_id: promotion.id,
+        promotion_name: promotion.name,
+        creative_name: promotion.creative,
+        items: [toGa4Item(promotion.product, 1, 1)]
+      });
+    },
+    selectPromotion(promotion) {
+      sendEvent('select_promotion', {
+        promotion_id: promotion.id,
+        promotion_name: promotion.name,
+        creative_name: promotion.creative,
+        items: [toGa4Item(promotion.product, 1, 1)]
+      });
+    },
+    generateLead(leadType, source) {
+      sendEvent('generate_lead', {
+        lead_type: leadType,
+        lead_source: source
+      });
+    },
+    addToWishlist(product) {
+      sendEvent('add_to_wishlist', {
+        currency: product.currency,
+        value: roundMoney(product.price),
+        items: [toGa4Item(product, 1, 1)]
+      });
+    },
+    applyCoupon(coupon, discountValue, status) {
+      sendEvent('apply_coupon', {
+        coupon: coupon || 'none',
+        discount_value: roundMoney(discountValue),
+        coupon_status: status
+      });
+    },
+    selectShippingOption(cartItems, shippingTier, shippingValue) {
+      sendEvent('select_shipping_option', {
+        shipping_tier: shippingTier,
+        shipping: roundMoney(shippingValue),
+        value: cartParams(cartItems).value
+      });
+    },
+    formStart(formName) {
+      sendEvent('form_start', { form_name: formName });
+    },
+    formError(formName, errorType) {
+      sendEvent('form_error', {
+        form_name: formName,
+        error_type: errorType
+      });
+    },
+    checkoutError(errorType, paymentType) {
+      sendEvent('checkout_error', {
+        error_type: errorType,
+        payment_type: paymentType
+      });
+    },
+    paymentFailed(paymentType) {
+      sendEvent('payment_failed', {
+        payment_type: paymentType
       });
     }
   };

@@ -39,8 +39,21 @@ a {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 :focus-visible {
@@ -100,6 +113,37 @@ input {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.site-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.site-search input,
+.coupon-form input,
+.panel select {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #fff;
+}
+
+.site-search input {
+  width: 150px;
+}
+
+.site-search button {
+  min-height: 38px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #fff;
+  background: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .site-nav a,
@@ -196,6 +240,17 @@ input {
 
 .section-block {
   margin-top: 34px;
+}
+
+.category-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.category-links a {
+  color: var(--primary-strong);
+  font-weight: 700;
 }
 
 .section__heading {
@@ -470,6 +525,51 @@ input {
   gap: 12px;
 }
 
+.coupon-form {
+  display: grid;
+  gap: 7px;
+  padding-top: 4px;
+}
+
+.coupon-form > div {
+  display: flex;
+  gap: 8px;
+}
+
+.coupon-form input {
+  min-width: 0;
+  width: 100%;
+}
+
+.form-message {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.promotion-band,
+.newsletter-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid #f7c66a;
+  border-radius: 8px;
+  background: #fff8e8;
+}
+
+.promotion-band h2,
+.newsletter-panel h2 {
+  margin: 0 0 8px;
+}
+
+.newsletter-panel {
+  border-color: #b8dcd6;
+  background: var(--surface-strong);
+}
+
 .summary-row {
   border-top: 1px solid var(--line);
   padding-top: 12px;
@@ -636,6 +736,14 @@ input {
     justify-content: flex-start;
   }
 
+  .site-search {
+    width: 100%;
+  }
+
+  .site-search input {
+    flex: 1;
+  }
+
   .hero__content {
     padding: 28px 22px;
   }
@@ -650,7 +758,9 @@ input {
   .section__heading--row,
   .cta-band,
   .site-footer,
-  .recommendation {
+  .recommendation,
+  .promotion-band,
+  .newsletter-panel {
     align-items: flex-start;
     flex-direction: column;
   }
