@@ -52,6 +52,25 @@ DIAGNOSTIC_EVENTS = [
     "payment_failed",
 ]
 
+# Training assumptions only. These values model a realistic paid-media planning
+# discussion and are never sent to GA4 or presented as ad-platform spend.
+SIMULATED_AD_CAMPAIGNS = [
+    {
+        "campaign": "training_paid_search_tablet",
+        "channel": "Paid Search",
+        "planned_spend": 180.00,
+        "planned_clicks": 60,
+        "objective": "High-intent rugged tablet demand capture",
+    },
+    {
+        "campaign": "training_paid_social_field_kit",
+        "channel": "Paid Social",
+        "planned_spend": 120.00,
+        "planned_clicks": 80,
+        "objective": "Field-team awareness and promotion engagement",
+    },
+]
+
 
 def build_client(key_path):
     if not key_path.exists():
@@ -178,6 +197,133 @@ def make_table(headers, rows, max_rows=20):
     return f"<div class=\"table-wrap\"><table><thead><tr>{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table></div>{more}"
 
 
+def channel_name(source, medium):
+    source = str(source or "").lower()
+    medium = str(medium or "").lower()
+    if medium in {"cpc", "ppc", "paid_search", "paidsearch"}:
+        return "Paid Search"
+    if medium in {"paid_social", "paidsocial", "social_paid"}:
+        return "Paid Social"
+    if medium == "email":
+        return "Email"
+    if medium == "referral":
+        return "Affiliate / Referral"
+    if medium in {"ai_assistant", "ai"} or source in {"chatgpt", "perplexity", "gemini"}:
+        return "AI Referral"
+    if medium == "organic":
+        return "SEO / Organic"
+    if medium == "(none)" or source == "(direct)":
+        return "Direct"
+    return "Other"
+
+
+def build_channel_summary(source_rows):
+    grouped = {}
+    for row in source_rows:
+        name = channel_name(row.get("sessionSource"), row.get("sessionMedium"))
+        bucket = grouped.setdefault(name, {"sessions": 0.0, "activeUsers": 0.0, "screenPageViews": 0.0, "keyEvents": 0.0, "transactions": 0.0, "totalRevenue": 0.0})
+        for metric in bucket:
+            bucket[metric] += number(row.get(metric, 0))
+
+    rows = []
+    for name, values in grouped.items():
+        sessions = values["sessions"]
+        rows.append({
+            "channel": name,
+            **values,
+            "purchaseRate": ratio(values["transactions"], sessions),
+            "revenuePerSession": ratio(values["totalRevenue"], sessions),
+            "readiness": "Collect more data" if sessions < 20 else "Ready for directional review",
+        })
+    return sorted(rows, key=lambda row: (row["totalRevenue"], row["sessions"]), reverse=True)
+
+
+def channel_summary_table_rows(channel_rows):
+    headers = ["Channel", "Sessions", "Users", "Page views", "Key events", "Transactions", "Revenue", "Purchase rate", "Revenue / session", "Decision readiness"]
+    rows = [
+        [
+            row["channel"], intish(row["sessions"]), intish(row["activeUsers"]), intish(row["screenPageViews"]),
+            intish(row["keyEvents"]), intish(row["transactions"]), f"${row['totalRevenue']:.2f}",
+            pct(row["purchaseRate"]), f"${row['revenuePerSession']:.2f}", row["readiness"],
+        ]
+        for row in channel_rows
+    ]
+    return headers, rows
+
+
+def simulated_ad_table_rows(source_rows):
+    campaign_data = {}
+    for row in source_rows:
+        campaign = row.get("sessionCampaignName")
+        if not campaign:
+            continue
+        bucket = campaign_data.setdefault(campaign, {"sessions": 0.0, "transactions": 0.0, "revenue": 0.0})
+        bucket["sessions"] += number(row.get("sessions", 0))
+        bucket["transactions"] += number(row.get("transactions", 0))
+        bucket["revenue"] += number(row.get("totalRevenue", 0))
+
+    headers = [
+        "Campaign",
+        "Channel",
+        "Training objective",
+        "Simulated spend",
+        "Planned clicks",
+        "GA sessions",
+        "GA transactions",
+        "GA revenue",
+        "Simulated CPC",
+        "Training CPA",
+        "Training ROAS",
+        "Decision rule",
+    ]
+    rows = []
+    for plan in SIMULATED_AD_CAMPAIGNS:
+        actual = campaign_data.get(plan["campaign"], {})
+        spend = plan["planned_spend"]
+        clicks = plan["planned_clicks"]
+        sessions = number(actual.get("sessions", 0))
+        transactions = number(actual.get("transactions", 0))
+        revenue = number(actual.get("revenue", 0))
+        if sessions < 20:
+            decision = "Collect 20-30 GA sessions before comparing creative or landing-page quality"
+        elif transactions <= 0:
+            decision = "Do not scale: test landing page, offer, and audience before increasing budget"
+        else:
+            decision = "Directional only: validate with real platform cost before changing live spend"
+        rows.append(
+            [
+                plan["campaign"],
+                plan["channel"],
+                plan["objective"],
+                f"${spend:.2f}",
+                intish(clicks),
+                intish(sessions),
+                intish(transactions),
+                f"${revenue:.2f}",
+                f"${ratio(spend, clicks):.2f}",
+                f"${ratio(spend, transactions):.2f}" if transactions else "N/A",
+                f"{ratio(revenue, spend):.2f}x" if spend else "N/A",
+                decision,
+            ]
+        )
+    return headers, rows
+
+
+def build_channel_actions(channel_rows, content_rows, diagnostic_rows):
+    by_name = {row["channel"]: row for row in channel_rows}
+    paid_sessions = sum(by_name.get(name, {}).get("sessions", 0) for name in ("Paid Search", "Paid Social"))
+    affiliate = by_name.get("Affiliate / Referral", {})
+    organic = by_name.get("SEO / Organic", {})
+    ai_referral = by_name.get("AI Referral", {})
+    leads = sum(number(row.get("eventCount")) for row in diagnostic_rows if row.get("eventName") == "generate_lead")
+    return [
+        {"area": "Advertising", "title": "Rehearse paid-media decisions with transparent training assumptions", "evidence": f"Paid sessions={intish(paid_sessions)}. Simulated spend is shown separately from GA4 revenue.", "action": "Use Training ROAS and CPA only to practise decisions. Keep paid budgets in test mode until each source has 20-30 sessions; replace assumptions with platform cost before live spend changes."},
+        {"area": "SEO", "title": "Use content pages to validate search-intent demand", "evidence": f"SEO / Organic sessions={intish(organic.get('sessions', 0))}; tracked Blog / Article paths={len(content_rows)}.", "action": "Prioritize content pages that generate product views or leads. Improve CTA and internal product links before expanding keyword volume."},
+        {"area": "Affiliate", "title": "Judge partners by downstream purchase quality", "evidence": f"Affiliate / Referral sessions={intish(affiliate.get('sessions', 0))}; AI Referral sessions={intish(ai_referral.get('sessions', 0))}.", "action": "Keep partners that drive product interest and checkout starts. Pause placements that only create page views after the sample reaches 20-30 sessions."},
+        {"area": "User Asset Growth", "title": "Connect content traffic to reusable lead signals", "evidence": f"generate_lead events={intish(leads)}.", "action": "Compare lead creation by article, source, and promotion entry before investing in more content distribution."},
+    ]
+
+
 def build_insights(summary, funnel_rows, source_rows, page_rows, product_event_rows, content_rows, diagnostic_rows):
     insights = []
     sessions = get_metric(summary, "sessions")
@@ -297,6 +443,17 @@ def render_dashboard(path, context):
         f"<article class=\"kpi\"><p>{html.escape(label)}</p><strong>{html.escape(value)}</strong></article>"
         for label, value in context["kpis"]
     )
+    decision_html = "".join(
+        [
+            "<article class=\"insight\">"
+            f"<p>{html.escape(item['area'])}</p>"
+            f"<h3>{html.escape(item['title'])}</h3>"
+            f"<div><strong>Evidence:</strong> {html.escape(item['evidence'])}</div>"
+            f"<div><strong>Action:</strong> {html.escape(item['action'])}</div>"
+            "</article>"
+            for item in context["channel_actions"]
+        ]
+    )
     sections = "".join(
         [
             f"<section><h2>{html.escape(section['title'])}</h2><p>{html.escape(section['description'])}</p>{section['table']}</section>"
@@ -311,7 +468,7 @@ def render_dashboard(path, context):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GA4 Ecommerce Operations Dashboard</title>
+  <title>GA4 Independent Store Growth Dashboard</title>
   <style>
     body {{ margin: 0; font-family: Arial, sans-serif; color: #172026; background: #f6f8f9; }}
     header {{ padding: 28px 40px; background: #0f2f35; color: #fff; }}
@@ -337,13 +494,15 @@ def render_dashboard(path, context):
 </head>
 <body>
   <header>
-    <h1>GA4 Ecommerce Operations Dashboard</h1>
+    <h1>GA4 Independent Store Growth Dashboard</h1>
     <p class="meta">Property {property_id} · {date_range} · Generated {generated}</p>
   </header>
   <main>
     <div class="grid kpis">{kpi_cards}</div>
     <h2>Action Guidance</h2>
     <div class="grid insights">{insights_html}</div>
+    <h2>Advertising, SEO, and Affiliate Decisions</h2>
+    <div class="grid insights">{decision_html}</div>
     {sections}
   </main>
 </body>
@@ -406,8 +565,17 @@ def main():
             "title": "Traffic Sources",
             "description": "按 source / medium / campaign 判断流量质量，指导保留、扩大或暂停来源。",
             "dimensions": ["sessionSource", "sessionMedium", "sessionCampaignName"],
-            "metrics": ["activeUsers", "sessions", "screenPageViews", "eventCount", "keyEvents", "transactions"],
+            "metrics": ["activeUsers", "sessions", "screenPageViews", "eventCount", "keyEvents", "transactions", "totalRevenue"],
             "limit": 100,
+        },
+        {
+            "key": "channel_landing_pages",
+            "title": "Channel Landing Pages",
+            "description": "Maps traffic source and campaign to landing page so advertising, SEO, and affiliate traffic can be diagnosed before budget or content changes.",
+            "dimensions": ["sessionSource", "sessionMedium", "sessionCampaignName", "landingPagePlusQueryString"],
+            "metrics": ["sessions", "keyEvents", "transactions", "totalRevenue"],
+            "limit": 100,
+            "optional": True,
         },
         {
             "key": "event_funnel",
@@ -523,10 +691,14 @@ def main():
     summary_row = summary[0] if summary else {}
     funnel_rows = results["event_funnel"]["dicts"]
     source_rows = results["traffic_sources"]["dicts"]
+    channel_rows = build_channel_summary(source_rows)
+    channel_headers, channel_table_rows = channel_summary_table_rows(channel_rows)
+    ad_headers, ad_table_rows = simulated_ad_table_rows(source_rows)
     page_rows = results["pages"]["dicts"]
     product_event_rows = results["product_events"]["dicts"]
     content_rows = results["content_pages"]["dicts"]
     diagnostic_rows = results["conversion_diagnostics"]["dicts"]
+    channel_actions = build_channel_actions(channel_rows, content_rows, diagnostic_rows)
 
     kpis = [
         ("Active users", str(intish(summary_row.get("activeUsers", 0)))),
@@ -539,8 +711,23 @@ def main():
     ]
 
     sections = []
+    sections.append(
+        {
+            "title": "Channel Decision Matrix",
+            "description": "Use this table to compare channel quality. It uses GA4 behavior and revenue only; no advertising cost is mixed into the source data.",
+            "table": make_table(channel_headers, channel_table_rows, max_rows=20),
+        }
+    )
+    sections.append(
+        {
+            "title": "Simulated Paid Media Planning",
+            "description": "Training spend and planned clicks are explicit assumptions. Training CPA and ROAS combine those assumptions with GA-attributed results for decision practice only.",
+            "table": make_table(ad_headers, ad_table_rows, max_rows=20),
+        }
+    )
     for key in [
         "traffic_sources",
+        "channel_landing_pages",
         "event_funnel",
         "pages",
         "conversion_diagnostics",
@@ -573,6 +760,7 @@ def main():
             "generated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "kpis": kpis,
             "insights": insights,
+            "channel_actions": channel_actions,
             "sections": sections,
         },
     )
