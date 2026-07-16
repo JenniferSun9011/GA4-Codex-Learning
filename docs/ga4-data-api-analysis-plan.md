@@ -44,6 +44,23 @@ Do not commit service account JSON keys, API secrets, or `.env` files to this re
 
 ## MVP Analysis Reports
 
+The repository includes two read-only scripts:
+
+- `scripts/ga4_run_report.py` exports basic summary, event, and page reports.
+- `scripts/ga4_build_dashboard.py` builds a local HTML operations dashboard and CSV detail files.
+
+Default local output path:
+
+```text
+D:\CodexWork\ga4-data-api-output
+```
+
+Recommended command:
+
+```powershell
+& 'D:\CodexWork\ga4-data-api-venv\Scripts\python.exe' 'D:\CodexWork\GA4-Codex-Learning\scripts\ga4_build_dashboard.py'
+```
+
 ### 1. Traffic Quality
 
 Group by `sessionSource`, `sessionMedium`, and `sessionCampaignName`.
