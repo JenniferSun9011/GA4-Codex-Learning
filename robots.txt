@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jennifersun9011.github.io/GA4-Codex-Learning/sitemap.xml
